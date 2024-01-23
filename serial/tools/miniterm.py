@@ -820,7 +820,7 @@ class Miniterm(object):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # default args can be used to override when calling main() from an other script
 # e.g to create a miniterm-my-device.py
-def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr=None, serial_instance=None):
+def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr=None, serial_instance=None, default_eol='CRLF'):
     """Command line tool, entry point"""
 
     import argparse
@@ -849,6 +849,20 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
         type=lambda c: c.upper(),
         help='set parity, one of {N E O S M}, default: N',
         default='N')
+
+    group.add_argument(
+        '--data',
+        choices=[5, 6, 7, 8],
+        type=int,
+        help='set data bits, default: %(default)s',
+        default=8)
+
+    group.add_argument(
+        '--stop',
+        choices=[1, 2, 3],
+        type=int,
+        help='set stop bits (1, 2, 1.5), default: %(default)s',
+        default=1)
 
     group.add_argument(
         '--rtscts',
@@ -914,7 +928,7 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
         choices=['CR', 'LF', 'CRLF'],
         type=lambda c: c.upper(),
         help='end of line mode',
-        default='CRLF')
+        default=default_eol)
 
     group.add_argument(
         '--raw',
@@ -980,11 +994,15 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
             else:
                 if not args.port:
                     parser.error('port is not given')
+
+        stopbits = serial.STOPBITS_ONE_POINT_FIVE if args.stop == 3 else args.stop
         try:
             serial_instance = serial.serial_for_url(
                 args.port,
                 args.baudrate,
+                bytesize=args.data,
                 parity=args.parity,
+                stopbits=stopbits,
                 rtscts=args.rtscts,
                 xonxoff=args.xonxoff,
                 do_not_open=True)
